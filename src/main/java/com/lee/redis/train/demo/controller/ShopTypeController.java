@@ -1,9 +1,8 @@
 package com.lee.redis.train.demo.controller;
 
 import com.lee.redis.train.demo.entity.Result;
-import com.lee.redis.train.demo.service.impl.ShopTypeService;
+import com.lee.redis.train.demo.service.IShopTypeService;
 import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,8 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/shop-type")
 public class ShopTypeController {
 
-    @Autowired
-    private ShopTypeService shopTypeService;
+    @Resource
+    private IShopTypeService shopTypeService;
 
     @GetMapping("/list")
     public Result list() {

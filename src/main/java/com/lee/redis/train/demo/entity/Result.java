@@ -26,10 +26,26 @@ public class Result {
     private long timestamp;
     private int total;
 
+    public static Result success() {
+        return new Result()
+                .setCode(200)
+                .setMessage("success")
+                .setTimestamp(System.currentTimeMillis());
+    }
+
     public static Result success(String message) {
         return new Result()
                 .setCode(200)
+                .setMessage("success")
+                .setDetail(message)
+                .setTimestamp(System.currentTimeMillis());
+    }
+
+    public static Result success(String message, Object data) {
+        return new Result()
+                .setCode(200)
                 .setMessage(message)
+                .setData(data)
                 .setTimestamp(System.currentTimeMillis());
     }
 

@@ -61,6 +61,19 @@
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
             <version>${mybatis-plus.version}</version>
+            <!-- 排除旧版 mybatis-spring -->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mybatis</groupId>
+                    <artifactId>mybatis-spring</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- 显式引入兼容 Spring 6 的 mybatis-spring 3.x -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-spring</artifactId>
+            <version>3.0.3</version> <!-- 或 3.0.4 -->
         </dependency>
         <!-- Spring jdbc -->
         <dependency>
@@ -79,6 +92,7 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+            <version>1.18.24</version>
         </dependency>
         <dependency>
             <groupId>cn.hutool</groupId>

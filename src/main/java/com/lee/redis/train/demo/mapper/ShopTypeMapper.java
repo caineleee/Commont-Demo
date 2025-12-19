@@ -13,6 +13,5 @@ import org.springframework.stereotype.Repository;
  * @Version 1.0
  */
 @Mapper
-@Repository
 public interface ShopTypeMapper extends BaseMapper<ShopType> {
 }
