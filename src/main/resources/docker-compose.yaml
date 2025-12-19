@@ -1,0 +1,813 @@
+# 服务定义
+services:
+  # MySQL Master 数据库服务
+  demo-mysql-shard1:
+    # 使用的镜像
+    image: mysql:8.0
+    # 容器名称
+    container_name: demo-mysql-shard1
+    # 重启策略
+    restart: unless-stopped
+    # 端口映射 (主机端口:容器端口)
+    ports:
+      - "3306:3306"
+    # 网络配置
+    networks:
+      - demo-app-cluster # 单机部署集群网络
+    # 环境变量配置
+    environment:
+      # MySQL root 用户密码
+      MYSQL_ROOT_PASSWORD: root
+      # 默认创建的数据库名称
+      MYSQL_DATABASE: oa-sys-database
+
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+      # 主从复制配置
+      MYSQL_REPLICATION_USER: root
+      MYSQL_REPLICATION_PASSWORD: root
+    # 数据卷挂载
+    volumes:
+      # 挂载 MySQL 数据目录以实现数据持久化
+      - mysql-data:/var/lib/mysql
+      # 挂载主从复制配置
+      - ./mysql/master/conf.d:/etc/mysql/conf.d
+    # MySQL 启动命令参数
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      # 设置服务器默认字符集, 所有新建数据库和表默认使用 utf8mb4 字符集
+      - --character-set-server=utf8mb4
+      # 置服务器默认的排序规则 unicode_ci 表示基于 Unicode 标准的排序,ci 表示 case-insensitive(不区分大小写)
+      # 影响字符串比较、排序、索引等操作, 与字符集配置配套使用
+      - --collation-server=utf8mb4_unicode_ci
+      # 跳过客户端字符集协商,强制使用服务器字符集 不管客户端声明什么字符集,服务器都强制使用 utf8mb4 避免因客户端字符集设置不当导致的乱码问题
+      - --skip-character-set-client-handshake
+      # 每个新连接建立时自动执行的初始化命令 确保连接层面的字符集一致性
+      - --init-connect=SET NAMES utf8mb4
+      # 设置连接的排序规则 为每个新连接设置 collation_connection 变量 确保排序规则与字符集配置保持一致
+      - --init-connect=SET collation_connection = utf8mb4_unicode_ci
+      # 启用慢查询日志功能 1 表示开启,0 表示关闭
+      - --slow-query-log=1
+      # 指定慢查询日志的存储位置
+      - --slow-query-log-file=/var/log/mysql/slow.log
+      # 定义"慢查询"的时间标准为2秒
+      - --long-query-time=2
+      # 记录所有没有使用索引的查询 即使执行时间未超过阈值,未使用索引的查询也会被记录 注意: 开发环境有用,生产环境可能产生大量日志
+      - --log-queries-not-using-indexes=1
+      # 设置日志输出目标 文件方式性能更好,占用资源更少 可选值: FILE, TABLE, NONE
+      - --log-output=FILE
+      # 主从复制相关配置
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=row
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --require-secure-transport=OFF  # 禁用安全传输要求
+    # 健康检查配置
+    healthcheck:
+      # 健康检查命令
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      # 检查间隔
+      interval: 30s
+      # 超时时间
+      timeout: 10s
+      # 重试次数
+      retries: 3
+      start_period: 40s
+
+  # MySQL 实例 1 - 分片1
+#  demo-mysql-shard2-master:
+#    image: mysql:8.0
+#    container_name: demo-mysql-shard2-master
+#    restart: unless-stopped
+#    ports:
+#      - "3307:3306"
+#    networks:
+#      - demo-app-cluster
+#    environment:
+#      MYSQL_ROOT_PASSWORD: root
+#      MYSQL_DATABASE: oa_shard1
+#      MYSQL_CHARSET: utf8mb4
+#      MYSQL_COLLATION: utf8mb4_unicode_ci
+#    volumes:
+#      - mysql-shard2-data:/var/lib/mysql
+#      - ./mysql/shard1/conf.d:/etc/mysql/conf.d
+#    command:
+#      - --default-authentication-plugin=mysql_native_password
+#      - --character-set-server=utf8mb4
+#      - --collation-server=utf8mb4_unicode_ci
+#      - --skip-character-set-client-handshake
+#      - --init-connect=SET NAMES utf8mb4
+#      - --init-connect=SET collation_connection = utf8mb4_unicode_ci
+#      - --slow-query-log=1
+#      - --slow-query-log-file=/var/log/mysql/slow.log
+#      - --long-query-time=2
+#      - --log-queries-not-using-indexes=1
+#      - --log-output=FILE
+#      - --server-id=1
+#      - --log-bin=mysql-bin
+#      - --binlog-format=row
+#      - --gtid-mode=ON
+#      - --enforce-gtid-consistency=ON
+#      - --require-secure-transport=OFF
+#    healthcheck:
+#      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 40s
+
+  # MySQL 实例 2 - 分片2
+#  demo-mysql-shard3-master:
+#    image: mysql:8.0
+#    container_name: demo-mysql-shard3-master
+#    restart: unless-stopped
+#    ports:
+#      - "3308:3306"
+#    networks:
+#      - demo-app-cluster
+#    environment:
+#      MYSQL_ROOT_PASSWORD: root
+#      MYSQL_DATABASE: oa_shard2
+#      MYSQL_CHARSET: utf8mb4
+#      MYSQL_COLLATION: utf8mb4_unicode_ci
+#    volumes:
+#      - mysql-shard3-data:/var/lib/mysql
+#      - ./mysql/shard2/conf.d:/etc/mysql/conf.d
+#    command:
+#      - --default-authentication-plugin=mysql_native_password
+#      - --character-set-server=utf8mb4
+#      - --collation-server=utf8mb4_unicode_ci
+#      - --skip-character-set-client-handshake
+#      - --init-connect=SET NAMES utf8mb4
+#      - --init-connect=SET collation_connection = utf8mb4_unicode_ci
+#      - --slow-query-log=1
+#      - --slow-query-log-file=/var/log/mysql/slow.log
+#      - --long-query-time=2
+#      - --log-queries-not-using-indexes=1
+#      - --log-output=FILE
+#      - --server-id=2
+#      - --log-bin=mysql-bin
+#      - --binlog-format=row
+#      - --gtid-mode=ON
+#      - --enforce-gtid-consistency=ON
+#      - --require-secure-transport=OFF
+#    healthcheck:
+#      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 40s
+
+  # MySQL Slave 数据库服务
+#  demo-mysql-shard1-slave1:
+#    # 使用的镜像
+#    image: mysql:8.0
+#    # 容器名称
+#    container_name: demo-mysql-shard1-slave1
+#    # 重启策略
+#    restart: unless-stopped
+#    # 端口映射 (主机端口:容器端口)
+#    ports:
+#      - "3310:3306"
+#    # 网络配置
+#    networks:
+#      - demo-app-cluster
+#    # 环境变量配置
+#    environment:
+#      # MySQL root 用户密码
+#      MYSQL_ROOT_PASSWORD: root
+#      # 默认创建的数据库名称
+#      MYSQL_DATABASE: oa-sys-database
+#      MYSQL_CHARSET: utf8mb4
+#      MYSQL_COLLATION: utf8mb4_unicode_ci
+#      # 主从复制配置
+#      MYSQL_MASTER_HOST: mysql-master
+#      MYSQL_MASTER_USER: root
+#      MYSQL_MASTER_PASSWORD: root
+#      MYSQL_MASTER_PORT: 3306
+#    # 数据卷挂载
+#    volumes:
+#      # 挂载 MySQL 数据目录以实现数据持久化
+#      - mysql-shard1-slave1:/var/lib/mysql
+#      # 挂载主从复制配置
+#      - ./mysql/slave/conf.d:/etc/mysql/conf.d
+#    # 依赖关系
+#    depends_on:
+#      mysql-shard1-master:
+#        condition: service_healthy
+#    # MySQL 启动命令参数
+#    command:
+#      - --default-authentication-plugin=mysql_native_password
+#      # 字符集配置
+#      - --character-set-server=utf8mb4
+#      - --collation-server=utf8mb4_unicode_ci
+#      - --skip-character-set-client-handshake
+#      - --init-connect=SET NAMES utf8mb4
+#      - --init-connect=SET collation_connection = utf8mb4_unicode_ci
+#      # 主从复制相关配置
+#      - --server-id=2
+#      - --log-bin=mysql-bin
+#      - --binlog-format=row
+#      - --gtid-mode=ON
+#      - --enforce-gtid-consistency=ON
+#      - --relay-log=mysql-relay-bin
+#      - --log-slave-updates=ON
+#      - --read-only=ON
+#      - --require-secure-transport=OFF  # 禁用安全传输要求
+##      - --default-authentication-plugin=mysql_native_password
+#    # 健康检查配置
+#    healthcheck:
+#      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 40s
+
+#
+#  # MySQL Slave2 数据库服务
+#  demo-mysql-slave2:
+#    # 使用的镜像
+#    image: mysql:8.0
+#    # 容器名称
+#    container_name: demo-mysql-slave2
+#    # 重启策略
+#    restart: unless-stopped
+#    # 端口映射 (主机端口:容器端口)
+#    ports:
+#      - "3308:3306"
+#    # 网络配置
+#    networks:
+#      - demo-app-cluster
+#    # 环境变量配置
+#    environment:
+#      # MySQL root 用户密码
+#      MYSQL_ROOT_PASSWORD: root
+#      # 默认创建的数据库名称
+#      MYSQL_DATABASE: oa-sys-database
+#      MYSQL_CHARSET: utf8mb4
+#      MYSQL_COLLATION: utf8mb4_unicode_ci
+#      # 主从复制配置
+#      MYSQL_MASTER_HOST: mysql-master
+#      MYSQL_MASTER_USER: root
+#      MYSQL_MASTER_PASSWORD: root
+#      MYSQL_MASTER_PORT: 3306
+#    # 数据卷挂载
+#    volumes:
+#      # 挂载 MySQL 数据目录以实现数据持久化
+#      - mysql-slave2-data:/var/lib/mysql
+#      # 挂载主从复制配置
+#      - ./mysql/slave/conf.d:/etc/mysql/conf.d
+#    # 依赖关系，确保主节点先启动
+#    depends_on:
+#      demo-mysql-master:
+#        condition: service_healthy
+#    # MySQL 启动命令参数
+#    command:
+#      - --default-authentication-plugin=mysql_native_password
+#      # 字符集配置
+#      - --character-set-server=utf8mb4
+#      - --collation-server=utf8mb4_unicode_ci
+#      - --skip-character-set-client-handshake
+#      - --init-connect=SET NAMES utf8mb4
+#      - --init-connect=SET collation_connection = utf8mb4_unicode_ci
+#      # 主从复制相关配置
+#      - --server-id=3
+#      - --log-bin=mysql-bin
+#      - --binlog-format=row
+#      - --gtid-mode=ON
+#      - --enforce-gtid-consistency=ON
+#      - --relay-log=mysql-relay-bin
+#      - --log-slave-updates=ON
+#      - --read-only=ON
+#      - --require-secure-transport=OFF  # 禁用安全传输要求
+##      - --default-authentication-plugin=mysql_native_password
+#    # 健康检查配置
+#    healthcheck:
+#      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 40s
+
+#  demo-shardingsphere-proxy:
+#    image: apache/shardingsphere-proxy:5.4.1
+#    container_name: demo-shardingsphere
+#    restart: unless-stopped
+#    ports:
+#      - "3309:3307"  # 代理端口，映射到主机 3309，避免与 MySQL 端口冲突
+#    networks:
+#      - demo-app-cluster
+#    environment:
+#      # JVM 内存配置
+#      JVM_OPTS: "-Xmx512m -Xms512m -Xmn256m"
+#      # 等待 MySQL 就绪
+#      PROXY_START_TIMEOUT: "120"
+#    depends_on:
+#      demo-mysql-shard1-master:
+#        condition: service_healthy
+#      demo-mysql-shard2-master:
+#        condition: service_healthy
+#      demo-mysql-shard3-master:
+#        condition: service_healthy
+#    volumes:
+#      # 挂载配置文件目录
+#      - ./shardingsphere/conf:/opt/shardingsphere-proxy/conf
+#      # 挂载扩展目录
+#      - ./shardingsphere/ext-lib:/opt/shardingsphere-proxy/ext-lib
+#    healthcheck:
+#      test: [ "CMD", "nc", "-z", "localhost", "3307" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
+#      start_period: 60s
+#    # 添加启动延迟，确保 MySQL 完全就绪
+#    command: >
+#      sh -c "
+#        echo 'Waiting for MySQL to be ready...';
+#        sleep 30;
+#        /opt/shardingsphere-proxy/bin/start.sh;
+#        tail -f /opt/shardingsphere-proxy/logs/stdout.log
+#      "
+
+
+  # Redis 主节点服务
+  demo-redis-master:
+    # 使用的镜像
+    image: redis:7-alpine
+    # 容器名称
+    container_name: demo-redis-master
+    # 重启策略
+    restart: unless-stopped
+    # 端口映射
+    ports:
+      - "6379:6379"
+    # 网络配置
+    networks:
+      - demo-app-cluster # 单机部署集群网络
+    # 数据卷挂载
+    volumes:
+      # 挂载 Redis 数据目录以实现数据持久化
+      - redis_master_data:/data
+    # Redis 启动命令参数
+    command: >
+      redis-server
+      --port 6379
+      --protected-mode no
+      --daemonize no
+      --dir /data
+      --dbfilename dump-6379.rdb
+      --logfile /data/redis-6379.log
+      --appendonly yes
+      --appendfilename appendonly-6379.aof
+      --requirepass root
+      --masterauth root
+      --loglevel verbose
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "root", "ping"]
+      # 检查间隔
+      interval: 60s
+      # 超时时间
+      timeout: 10s
+      # 重试次数
+      retries: 3
+      start_period: 20s
+
+  # Redis 从节点1服务
+  demo-redis-slave1:
+    # 使用的镜像
+    image: redis:7-alpine
+    # 容器名称
+    container_name: demo-redis-slave1
+    # 重启策略
+    restart: unless-stopped
+    # 端口映射
+    ports:
+      - "6380:6379"
+    # 网络配置
+    networks:
+      - demo-app-cluster # 单机部署集群网络
+    # 数据卷挂载
+    volumes:
+      # 挂载 Redis 数据目录以实现数据持久化
+      - redis_slave1_data:/data
+    # 依赖关系，确保主节点先启动
+    depends_on:
+      demo-redis-master:
+        condition: service_healthy
+    # Redis 启动命令参数
+    command: >
+      redis-server
+      --port 6379
+      --protected-mode no
+      --daemonize no
+      --dir /data
+      --dbfilename dump-6380.rdb
+      --logfile /data/redis-6380.log
+      --appendonly yes
+      --appendfilename appendonly-6380.aof
+      --replicaof redis-master 6379
+      --requirepass root
+      --masterauth root
+      --loglevel verbose
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "root", "ping" ]
+      # 检查间隔
+      interval: 60s
+      # 超时时间
+      timeout: 10s
+      # 重试次数
+      retries: 3
+      start_period: 20s
+    profiles:
+      - redis-cluster
+
+  # Redis 从节点2服务
+  demo-redis-slave2:
+    # 使用的镜像
+    image: redis:7-alpine
+    # 容器名称
+    container_name: demo-redis-slave2
+    # 重启策略
+    restart: unless-stopped
+    # 端口映射
+    ports:
+      - "6381:6379"
+    # 网络配置
+    networks:
+      - demo-app-cluster # 单机部署集群网络
+    # 数据卷挂载
+    volumes:
+      # 挂载 Redis 数据目录以实现数据持久化
+      - redis_slave2_data:/data
+    # 依赖关系，确保主节点先启动
+    depends_on:
+      demo-redis-master:
+        condition: service_healthy
+    # Redis 启动命令参数
+    command: >
+      redis-server
+      --port 6379
+      --protected-mode no
+      --daemonize no
+      --dir /data
+      --dbfilename dump-6381.rdb
+      --logfile /data/redis-6381.log
+      --appendonly yes
+      --appendfilename appendonly-6381.aof
+      --replicaof redis-master 6379
+      --requirepass root
+      --masterauth root
+      --loglevel verbose
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "root", "ping" ]
+      # 检查间隔
+      interval: 60s
+      # 超时时间
+      timeout: 10s
+      # 重试次数
+      retries: 3
+      start_period: 20s
+    profiles:
+      - redis-cluster
+
+  # Redis Sentinel 1 服务
+  demo-redis-sentinel1:
+    # 使用的镜像
+    image: redis:7-alpine
+    # 容器名称
+    container_name: demo-redis-sentinel1
+    # 重启策略
+    restart: unless-stopped
+    # 端口映射
+    ports:
+      - "26379:26379"
+    # 网络配置
+    networks:
+      - demo-app-cluster # 单机部署集群网络
+    # 数据卷挂载
+    volumes:
+      # 挂载 Sentinel 数据目录
+      - sentinel1-data:/data
+    # 依赖关系，确保 Redis 主节点先启动
+    depends_on:
+      demo-redis-master:
+          condition: service_healthy
+    # Sentinel 启动命令参数
+    command: >
+      sh -c "
+        echo 'port 26379' > /tmp/sentinel.conf &&
+        echo 'dir /data' >> /tmp/sentinel.conf &&
+        echo 'sentinel monitor mymaster localhost 6379 2' >> /tmp/sentinel.conf &&
+        echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
+        echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
+        echo 'sentinel failover-timeout mymaster 10000' >> /tmp/sentinel.conf &&
+        echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
+        echo 'sentinel auth-pass mymaster root' >> /tmp/sentinel.conf &&
+        redis-sentinel /tmp/sentinel.conf
+      "
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "26379", "-a", "root", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Redis Sentinel 2 服务
+  demo-redis-sentinel2:
+    # 使用的镜像
+    image: redis:7-alpine
+    # 容器名称
+    container_name: demo-redis-sentinel2
+    # 重启策略
+    restart: unless-stopped
+    # 端口映射
+    ports:
+      - "26380:26379"
+    # 网络配置
+    networks:
+      - demo-app-cluster # 单机部署集群网络
+    # 数据卷挂载
+    volumes:
+      # 挂载 Sentinel 数据目录
+      - sentinel2-data:/data
+    # 依赖关系，确保 Redis 主节点先启动
+    depends_on:
+      demo-redis-master:
+        condition: service_healthy
+    # Sentinel 启动命令参数
+    command: >
+      sh -c "
+        echo 'port 26379' > /tmp/sentinel.conf &&
+        echo 'dir /data' >> /tmp/sentinel.conf &&
+        echo 'sentinel monitor mymaster localhost 6379 2' >> /tmp/sentinel.conf &&
+        echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
+        echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
+        echo 'sentinel failover-timeout mymaster 10000' >> /tmp/sentinel.conf &&
+        echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
+        echo 'sentinel auth-pass mymaster root' >> /tmp/sentinel.conf &&
+        redis-sentinel /tmp/sentinel.conf
+      "
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "26379", "-a", "root", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - redis
+
+  # Redis Sentinel 3 服务
+  demo-redis-sentinel3:
+    # 使用的镜像
+    image: redis:7-alpine
+    # 容器名称
+    container_name: demo-redis-sentinel3
+    # 重启策略
+    restart: unless-stopped
+    # 端口映射
+    ports:
+      - "26381:26379"
+    # 网络配置
+    networks:
+      - demo-app-cluster # 单机部署集群网络
+    # 数据卷挂载
+    volumes:
+      # 挂载 Sentinel 数据目录
+      - sentinel3-data:/data
+    # 依赖关系，确保 Redis 主节点先启动
+    depends_on:
+      demo-redis-master:
+        condition: service_healthy
+    # Sentinel 启动命令参数
+    command: >
+      sh -c "
+        echo 'port 26379' > /tmp/sentinel.conf &&
+        echo 'dir /data' >> /tmp/sentinel.conf &&
+        echo 'sentinel monitor mymaster localhost 6379 2' >> /tmp/sentinel.conf &&
+        echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
+        echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
+        echo 'sentinel failover-timeout mymaster 10000' >> /tmp/sentinel.conf &&
+        echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
+        echo 'sentinel auth-pass mymaster root' >> /tmp/sentinel.conf &&
+        redis-sentinel /tmp/sentinel.conf
+      "
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "26379", "-a", "root", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - redis
+
+  # RabbitMQ 消息队列服务
+#  rabbitmq1:
+#    # 使用的镜像版本
+#    image: rabbitmq:4.2.0-management
+#    # 容器名称
+#    container_name: rabbitmq1
+#    # 主机名配置，用于集群模式下的节点识别
+#    hostname: rabbitmq-host
+#    # 端口映射配置
+#    ports:
+#      - "5672:5672"   # AMQP 协议端口，用于应用程序连接
+#      - "15672:15672" # Web 管理界面端口
+#      - "15692:15692" # Prometheus 监控端口，用于性能监控
+#    # 环境变量配置
+#    environment:
+#      # 基础认证配置
+#      RABBITMQ_DEFAULT_USER: admin      # 默认管理员用户名
+#      RABBITMQ_DEFAULT_PASS: admin123   # 默认管理员密码
+#      RABBITMQ_DEFAULT_VHOST: /         # 默认虚拟主机
+#
+#      # RabbitMQ 性能配置
+#      # 设置日志级别，connection错误级别，default信息级别
+#      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,error},{default,info}]
+#
+#      # 磁盘空间预警配置，当磁盘剩余空间低于1GB时触发警报
+#      RABBITMQ_DISK_FREE_LIMIT: 1GB
+#    # 数据卷挂载
+#    volumes:
+#      - rabbitmq_data:/var/lib/rabbitmq  # 挂载数据目录实现数据持久化
+#      - rabbitmq_logs:/var/log/rabbitmq  # 挂载日志目录便于问题排查
+#    # 网络配置
+#    networks:
+#      - demo-app-cluster # 使用统一的单机部署集群网络
+#    # 重启策略
+#    restart: unless-stopped
+#    # 健康检查配置
+#    healthcheck:
+#      # 使用rabbitmq-diagnostics工具检查节点健康状态
+#      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+#      # 检查间隔时间
+#      interval: 30s
+#      # 超时时间
+#      timeout: 30s
+#      # 重试次数
+#      retries: 3
+#      # 启动后等待时间
+#      start_period: 30s
+
+  # FastDFS Tracker 服务
+#  fastdfs-tracker:
+#    # 使用的镜像
+#    image: delron/fastdfs:latest
+#    # 容器名称
+#    container_name: fastdfs-tracker
+#    # 重启策略
+#    restart: unless-stopped
+#    # 端口映射
+#    ports:
+#      - "22122:22122"  # Tracker 服务端口
+#    # 网络配置
+#    networks:
+#      - demo-app-cluster
+#    # 环境变量
+#    environment:
+#      - TRACKER_BASE_PATH=/var/fdfs/tracker
+#    # 数据卷挂载
+#    volumes:
+#      - fastdfs_tracker:/var/fdfs/tracker
+#    # 启动命令
+#    command: tracker
+#    # 健康检查
+#    healthcheck:
+#      test: ["CMD-SHELL", "netstat -tuln | grep 22122 || exit 1"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 20s
+#    profiles:
+#      - fastdfs
+#
+#  # FastDFS Storage 服务
+#  fastdfs-storage:
+#    # 使用的镜像
+#    image: delron/fastdfs:latest
+#    # 容器名称
+#    container_name: fastdfs-storage
+#    # 重启策略
+#    restart: unless-stopped
+#    # 端口映射
+#    ports:
+#      - "23000:23000"  # Storage 服务端口
+#      - "8888:8888"    # HTTP 服务端口（用于文件访问）
+#    # 网络配置
+#    networks:
+#      - demo-app-cluster
+#    # 环境变量
+#    environment:
+#      - TRACKER_SERVER=fastdfs-tracker:22122
+#      - STORAGE_BASE_PATH=/var/fdfs/storage
+#      - STORAGE_PATH=/var/fdfs/storage/files
+#      - GROUP_NAME=group1
+#    # 数据卷挂载
+#    volumes:
+#      - fastdfs_storage:/var/fdfs/storage
+#    # 依赖 Tracker 服务
+#    depends_on:
+#      fastdfs-tracker:
+#        condition: service_healthy
+#    # 启动命令
+#    command: storage
+#    # 健康检查
+#    healthcheck:
+#      test: ["CMD-SHELL", "netstat -tuln | grep 23000 || exit 1"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 30s
+#    profiles:
+#      - fastdfs
+#
+#  # Nginx 服务（用于提供 FastDFS 文件访问）
+#  fastdfs-nginx:
+#    # 使用的镜像
+#    image: delron/fastdfs:latest
+#    # 容器名称
+#    container_name: fastdfs-nginx
+#    # 重启策略
+#    restart: unless-stopped
+#    # 端口映射（修改为 9090，避免与前端的 8080 冲突）
+#    ports:
+#      - "9090:8080"  # 宿主机 9090 映射到容器 8080
+#    # 网络配置
+#    networks:
+#      - demo-app-cluster
+#    # 环境变量
+#    environment:
+#      - TRACKER_SERVER=fastdfs-tracker:22122
+#    # 数据卷挂载（共享 Storage 的数据）
+#    volumes:
+#      - fastdfs_storage:/var/fdfs/storage:ro  # 只读挂载
+#    # 依赖 Storage 服务
+#    depends_on:
+#      fastdfs-storage:
+#        condition: service_healthy
+#    # 启动命令
+#    command: nginx
+#    profiles:
+#      - fastdfs
+
+
+# 数据卷定义
+volumes:
+  # MySQL 数据卷
+  mysql-data:
+  mysql-shard1-slave1:
+  mysql-shard2-data:
+  mysql-shard3-data:
+  # Redis 主节点数据卷
+  redis_master_data:
+  # Redis 从节点1数据卷
+  redis_slave1_data:
+  # Redis 从节点2数据卷
+  redis_slave2_data:
+  # Sentinel 1 数据卷
+  sentinel1-data:
+  # Sentinel 2 数据卷
+  sentinel2-data:
+  # Sentinel 3 数据卷
+  sentinel3-data:
+  # RabbitMQ 数据卷
+#  rabbitmq_data:
+  # RabbitMQ 日志数据卷
+#  rabbitmq_logs:
+  # FastDFS Tracker 数据卷
+#  fastdfs_tracker:
+  # FastDFS Storage 数据卷
+#  fastdfs_storage:
+
+## 网络定义
+#networks:
+#  # 自定义网络
+#  redis-net:
+#    # 网络驱动
+#    driver: bridge
+#    ipam:
+#      driver: default
+#      config:
+#        - subnet: 172.19.0.0/24    # 更小的子网（254个IP）
+#          gateway: 172.19.0.1
+#  rabbitmq-network:
+#    driver: bridge
+#    ipam:
+#      config:
+#        - subnet: 172.20.0.0/24
+#          gateway: 172.20.0.1
+
+# 单机部署集群网络
+networks:
+  demo-app-cluster:
+    # 网络驱动类型
+    driver: bridge
+    # IP地址管理配置
+    ipam:
+      # IPAM驱动
+      driver: default
+      config:
+        # 子网配置，使用/16网段可提供65534个IP地址
+        - subnet: 172.19.0.0/16
+          # 网关地址
+          gateway: 172.19.0.1
