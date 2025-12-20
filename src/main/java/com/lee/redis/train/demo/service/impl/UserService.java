@@ -1,8 +1,10 @@
 package com.lee.redis.train.demo.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lee.redis.train.demo.dto.LoginFormDTO;
+import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.Result;
 import com.lee.redis.train.demo.entity.User;
 import com.lee.redis.train.demo.exception.WebExceptionAdvice;
@@ -48,8 +50,8 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IUserS
         session.setAttribute("code", code);
         // 5. 发送验证码, 实现比较复杂, 先模拟
         log.info("发送验证码成功, 验证码: {}", code);
-        // 返回发送结果
-        return Result.success("发送成功");
+        // 返回发送结果, 这里返回 code 为了测试方便
+        return Result.success("发送成功", code);
     }
 
     /**
@@ -82,7 +84,7 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IUserS
             }
         }
         // 10. 保存用户信息到 session
-        session.setAttribute("user", user);
+        session.setAttribute("user", BeanUtil.copyProperties(user, UserDTO.class));
         // 11. 返回登录结果
         return Result.success("登录成功");
     }

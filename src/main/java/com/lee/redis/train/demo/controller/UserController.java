@@ -2,10 +2,10 @@ package com.lee.redis.train.demo.controller;
 
 import com.lee.redis.train.demo.constants.UserHold;
 import com.lee.redis.train.demo.dto.LoginFormDTO;
+import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.Result;
 import com.lee.redis.train.demo.entity.User;
 import com.lee.redis.train.demo.service.IUserService;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,7 +41,7 @@ public class UserController {
 
     @GetMapping("/me")
     public Result me() {
-        User user = UserHold.getUser();
+        UserDTO user = UserHold.getUser();
         return Result.success(user);
     }
 }

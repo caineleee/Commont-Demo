@@ -1,5 +1,6 @@
 package com.lee.redis.train.demo.constants;
 
+import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.User;
 
 /**
@@ -11,13 +12,13 @@ import com.lee.redis.train.demo.entity.User;
  */
 public class UserHold {
 
-    public static final ThreadLocal<User> USER_HOLD = new ThreadLocal<>();
+    public static final ThreadLocal<UserDTO> USER_HOLD = new ThreadLocal<>();
 
-    public static User getUser() {
+    public static UserDTO getUser() {
         return USER_HOLD.get();
     }
 
-    public static void setUser(User user) {
+    public static void setUser(UserDTO user) {
         USER_HOLD.set(user);
     }
 

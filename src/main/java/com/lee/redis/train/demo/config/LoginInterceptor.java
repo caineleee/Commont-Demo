@@ -1,6 +1,7 @@
 package com.lee.redis.train.demo.config;
 
 import com.lee.redis.train.demo.constants.UserHold;
+import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,7 +22,7 @@ public class LoginInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 1. 获取 session 中的用户信息
-        User user = (User)request.getSession().getAttribute("user");
+        UserDTO user = (UserDTO) request.getSession().getAttribute("user");
         // 2. 判断用户是否存在, 不存在就拦截
         if (user == null) {
             // 拦截
@@ -31,7 +32,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         // 3. 存在将用户信息保存到 ThreadLocal
         UserHold.setUser(user);
         // 4. 放行
-        return false;
+        return true; // 修复：应该返回true而不是false
     }
 
     /**

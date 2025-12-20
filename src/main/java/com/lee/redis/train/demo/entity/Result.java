@@ -44,7 +44,8 @@ public class Result {
     public static Result success(String message, Object data) {
         return new Result()
                 .setCode(200)
-                .setMessage(message)
+                .setMessage("success")
+                .setDetail(message)
                 .setData(data)
                 .setTimestamp(System.currentTimeMillis());
     }
