@@ -26,7 +26,7 @@ public class MVCConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LoginInterceptor(stringRedisTemplate))
+        registry.addInterceptor(new LoginInterceptor())
                 // 默认拦截所有请求, 部分请求排除
                 .excludePathPatterns(
                         "shop/**",
@@ -36,6 +36,9 @@ public class MVCConfig implements WebMvcConfigurer {
                         "/user/code",
                         "/user/login",
                         "/blog/hot"
-                );
+                ).order(1);
+        // 注册 RefreshTokenInterceptor 拦截器,
+        // 使用 Order 方法保证两个拦截器执行顺序, 数字越小越先执行.
+        registry.addInterceptor(new ReFreshTokenInterceptor(stringRedisTemplate)).order(0);
     }
 }
