@@ -21,6 +21,7 @@ spring:
           max-wait: -1
           min-idle: 0
           time-between-eviction-runs: 10s
+      database: 1
   jackson:
     default-property-inclusion: non_null
 

@@ -1,27 +1,37 @@
 package com.lee.redis.train.demo.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lee.redis.train.demo.dto.LoginFormDTO;
 import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.Result;
 import com.lee.redis.train.demo.entity.User;
-import com.lee.redis.train.demo.exception.WebExceptionAdvice;
 import com.lee.redis.train.demo.mapper.UserMapper;
 import com.lee.redis.train.demo.service.IUserService;
 import com.lee.redis.train.demo.utils.RegexUtil;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import static com.lee.redis.train.demo.constants.RedisConstants.LOGIN_CODE_KEY;
+import static com.lee.redis.train.demo.constants.RedisConstants.LOGIN_CODE_TTL;
+import static com.lee.redis.train.demo.constants.RedisConstants.USER_CACHED_KEY;
+import static com.lee.redis.train.demo.constants.RedisConstants.USER_CACHED_TTL;
 import static com.lee.redis.train.demo.constants.SystemConstants.USER_NICK_NAME_PREFIX;
 
 /**
- * @ClassName UserService
+ * @ClassName UserServiceImpl
  * @Description 用户服务类
  * @Author lihongliang
  * @Date 2025/12/19 17:10
@@ -29,7 +39,10 @@ import static com.lee.redis.train.demo.constants.SystemConstants.USER_NICK_NAME_
  */
 @Slf4j
 @Service
-public class UserService extends ServiceImpl<UserMapper, User> implements IUserService {
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * @Description 发送验证码
@@ -39,16 +52,15 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IUserS
      */
     @Override
     public Result sendCode(String phone, HttpSession session) {
-        // 1. 校验手机号
-        // 2. 不符合返回异常信息
+        // 校验手机号, 不符合返回异常信息
         if (!RegexUtil.isPhone(phone)) {
             return Result.error("手机号格式错误");
         }
-        // 3. 符合，生成验证码
+        // 符合，生成验证码
         String code = RandomUtil.randomNumbers(6);
-        // 4. 保存验证码到 session
-        session.setAttribute("code", code);
-        // 5. 发送验证码, 实现比较复杂, 先模拟
+        // 保存验证码到 Redis, 并设置有效期 5 分钟
+        stringRedisTemplate.opsForValue().set(LOGIN_CODE_KEY + phone, code, LOGIN_CODE_TTL, TimeUnit.MINUTES);
+        // 发送验证码, 实现比较复杂, 先模拟
         log.info("发送验证码成功, 验证码: {}", code);
         // 返回发送结果, 这里返回 code 为了测试方便
         return Result.success("发送成功", code);
@@ -70,7 +82,9 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IUserS
         if (!RegexUtil.isCode(loginForm.getCode())) {
             return Result.error("验证码格式错误");
         }
-        if (!loginForm.getCode().equals(session.getAttribute("code"))) {
+        // 从 Redis 中获取验证码校验
+        String cacheCode = stringRedisTemplate.opsForValue().get(LOGIN_CODE_KEY + loginForm.getPhone());
+        if (cacheCode == null || !cacheCode.equals(loginForm.getCode())) {
             return Result.error("验证码错误");
         }
         // 根据手机号查询数据库用户信息
@@ -83,10 +97,26 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IUserS
                 return Result.error("创建用户失败");
             }
         }
-        // 10. 保存用户信息到 session
-        session.setAttribute("user", BeanUtil.copyProperties(user, UserDTO.class));
-        // 11. 返回登录结果
-        return Result.success("登录成功");
+        // 保存用户信息到 Redis
+        // 1. 生成随机 Token(此处使用 UUID 方便一些) 作为登录令牌
+        String uuid = UUID.randomUUID().toString(true);
+        String tokenKey = USER_CACHED_KEY + uuid;
+        // 2. 将 UserDTO 转为 Hash 存储到 Redis, 设置有效期 30 分钟
+        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
+        Map<String, Object> userMap = BeanUtil.beanToMap(
+                // Source Bean 和 target Map
+                userDTO, new HashMap<>(),
+                // 设置 BeanToMap 转换规则
+                CopyOptions.create()
+                    // 过滤控制
+                    .setIgnoreNullValue(true)
+                    // 将非字符串 value 转换为 String, 否则 Redis存入数据会报类型异常
+                    .setFieldValueEditor((field, value) -> value.toString()));
+        stringRedisTemplate.opsForHash().putAll(tokenKey, userMap);
+        stringRedisTemplate.expire(tokenKey, USER_CACHED_TTL, TimeUnit.MINUTES);
+
+        // 3. 将 Token 返回到客户端
+        return Result.success("登录成功", uuid);
     }
 
     /**

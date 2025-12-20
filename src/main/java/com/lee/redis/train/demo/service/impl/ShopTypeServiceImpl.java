@@ -7,13 +7,13 @@ import com.lee.redis.train.demo.service.IShopTypeService;
 import org.springframework.stereotype.Service;
 
 /**
- * @ClassName ShopTypeService
+ * @ClassName ShopTypeServiceImpl
  * @Description 商铺类型服务类
  * @Author lihongliang
  * @Date 2025/12/19 11:37
  * @Version 1.0
  */
 @Service
-public class ShopTypeService extends ServiceImpl<ShopTypeMapper, ShopType> implements IShopTypeService {
+public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> implements IShopTypeService {
 
 }

@@ -1,6 +1,8 @@
 package com.lee.redis.train.demo.config;
 
+import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -14,6 +16,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class MVCConfig implements WebMvcConfigurer {
 
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
     /**
      * 添加拦截器
      * 创建后的拦截器(LoginInterceptor) 自身无法生效, 需要添加到拦截器列表中
@@ -21,7 +26,7 @@ public class MVCConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LoginInterceptor())
+        registry.addInterceptor(new LoginInterceptor(stringRedisTemplate))
                 // 默认拦截所有请求, 部分请求排除
                 .excludePathPatterns(
                         "shop/**",
