@@ -83,4 +83,16 @@ public class Result {
                 .setDetail(message)
                 .setTimestamp(System.currentTimeMillis());
     }
+
+    public static Result notFount() {
+        return notFount("");
+    }
+
+    public static Result notFount(String message) {
+        return new Result()
+                .setCode(404)
+                .setMessage("failure")
+                .setDetail(message)
+                .setTimestamp(System.currentTimeMillis());
+    }
 }

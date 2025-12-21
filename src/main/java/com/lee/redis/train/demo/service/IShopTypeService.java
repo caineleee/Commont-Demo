@@ -1,6 +1,7 @@
 package com.lee.redis.train.demo.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.lee.redis.train.demo.entity.Result;
 import com.lee.redis.train.demo.entity.ShopType;
 
 /**
@@ -12,4 +13,10 @@ import com.lee.redis.train.demo.entity.ShopType;
  */
 public interface IShopTypeService extends IService<ShopType> {
 
+    /**
+     * 查询商铺类型列表
+     *
+     * @return 商铺类型列表
+     */
+    Result queryShopTypeList();
 }

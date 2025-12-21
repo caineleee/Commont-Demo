@@ -23,7 +23,7 @@ public class ShopTypeController {
 
     @GetMapping("/list")
     public Result list() {
-        return Result.success(shopTypeService.list());
+        return shopTypeService.queryShopTypeList();
     }
 
 }
