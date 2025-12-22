@@ -34,7 +34,13 @@ public class RedisConstants {
     public static final String CACHE_SHOP_KEY = "cache:shop:";
 
     /**
+     * 商铺缓存 Key 过期时间
+     */
+    public static final Long CACHE_SHOP_TTL = 30L;
+
+    /**
      * 商铺类型缓存 Key
      */
     public static final String CACHE_SHOP_TYPE_LIST_KEY = "cache:shop_type:list";
+
 }

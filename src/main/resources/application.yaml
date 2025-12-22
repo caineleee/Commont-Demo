@@ -34,4 +34,4 @@ mybatis-plus:
 
 logging:
   level:
-    com.lee.redis.train.demo: info
+    com.lee.redis.train.demo: debug

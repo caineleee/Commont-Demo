@@ -1,6 +1,7 @@
 package com.lee.redis.train.demo.entity;
 
 import cn.hutool.core.date.DateTime;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
  * @Version 1.0
  */
 @Data
+@TableName("tb_shop")
 public class Shop {
 
     private Long id;

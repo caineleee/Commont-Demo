@@ -7,6 +7,11 @@ import lombok.experimental.Accessors;
 
 import java.util.List;
 
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+
 /**
  * @ClassName Result
  * @Description 响应实体
@@ -28,14 +33,14 @@ public class Result {
 
     public static Result success() {
         return new Result()
-                .setCode(200)
+                .setCode(OK.value())
                 .setMessage("success")
                 .setTimestamp(System.currentTimeMillis());
     }
 
     public static Result success(String message) {
         return new Result()
-                .setCode(200)
+                .setCode(OK.value())
                 .setMessage("success")
                 .setDetail(message)
                 .setTimestamp(System.currentTimeMillis());
@@ -43,7 +48,7 @@ public class Result {
 
     public static Result success(String message, Object data) {
         return new Result()
-                .setCode(200)
+                .setCode(OK.value())
                 .setMessage("success")
                 .setDetail(message)
                 .setData(data)
@@ -52,7 +57,7 @@ public class Result {
 
     public static Result success(Object data) {
         return new Result()
-                .setCode(200)
+                .setCode(OK.value())
                 .setMessage("success")
                 .setData(data)
                 .setTimestamp(System.currentTimeMillis());
@@ -60,7 +65,7 @@ public class Result {
 
     public static <T> Result success(List<T> data) {
         return new Result()
-                .setCode(200)
+                .setCode(OK.value())
                 .setMessage("success")
                 .setData(data)
                 .setTotal(data.size())
@@ -69,7 +74,7 @@ public class Result {
 
     public static <T> Result success(List<T> data, int total) {
         return new Result()
-                .setCode(200)
+                .setCode(OK.value())
                 .setMessage("success")
                 .setData(data)
                 .setTotal(total)
@@ -78,7 +83,7 @@ public class Result {
 
     public static Result error(String message) {
         return new Result()
-                .setCode(500)
+                .setCode(INTERNAL_SERVER_ERROR.value())
                 .setMessage("failure")
                 .setDetail(message)
                 .setTimestamp(System.currentTimeMillis());
@@ -90,7 +95,15 @@ public class Result {
 
     public static Result notFount(String message) {
         return new Result()
-                .setCode(404)
+                .setCode(NOT_FOUND.value())
+                .setMessage("failure")
+                .setDetail(message)
+                .setTimestamp(System.currentTimeMillis());
+    }
+
+    public static Result unAuthorized(String message) {
+        return new Result()
+                .setCode(UNAUTHORIZED.value())
                 .setMessage("failure")
                 .setDetail(message)
                 .setTimestamp(System.currentTimeMillis());

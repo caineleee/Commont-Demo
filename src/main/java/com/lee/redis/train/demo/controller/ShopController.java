@@ -6,6 +6,8 @@ import com.lee.redis.train.demo.service.IShopService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,6 +29,11 @@ public class ShopController {
     @GetMapping("/{id}")
     public Result queryShopById(@PathVariable("id") Long id) {
         return shopService.queryShopById(id);
+    }
+
+    @PutMapping("/")
+    public Result updateShop(@RequestBody Shop shop) {
+        return shopService.updateShop(shop);
     }
 
 }

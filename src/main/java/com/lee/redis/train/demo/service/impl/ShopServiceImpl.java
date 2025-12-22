@@ -10,10 +10,13 @@ import com.lee.redis.train.demo.service.IShopService;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.lee.redis.train.demo.constants.RedisConstants.CACHE_SHOP_KEY;
+import static com.lee.redis.train.demo.constants.RedisConstants.CACHE_SHOP_TTL;
 
 /**
  * @ClassName ShopServiceImpl
@@ -44,8 +47,28 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             return Result.notFount("店铺不存在");
         }
         // 4. 有数据则更新缓存
-        stringRedisTemplate.opsForValue().set(redisKey, JSONUtil.toJsonStr(shop));
+        stringRedisTemplate.opsForValue().set(redisKey, JSONUtil.toJsonStr(shop), CACHE_SHOP_TTL, TimeUnit.MINUTES);
         // 5. 返回商铺信息
         return Result.success(List.of(shop));
+    }
+
+    /**
+     * 更新商铺信息
+     *
+     * @param shop 商铺信息
+     * @return 更新结果
+     */
+    @Override
+    @Transactional
+    public Result updateShop(Shop shop) {
+        if (shop.getId() == null) {
+            return Result.error("店铺ID不能为空");
+        }
+        // 1. 更新数据库
+        updateById(shop);
+        // 2. 删除缓存
+        stringRedisTemplate.delete(CACHE_SHOP_KEY + shop.getId());
+        // 3. 返回更新结果
+        return Result.success("修改成功");
     }
 }
