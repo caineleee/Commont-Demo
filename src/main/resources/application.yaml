@@ -24,6 +24,8 @@ spring:
       database: 1
   jackson:
     default-property-inclusion: non_null
+    parser:
+      allow-numeric-leading-zeros: true
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
