@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.lee.redis.train.demo.constants.RedisConstants.CACHE_NULL_TTL;
 import static com.lee.redis.train.demo.constants.RedisConstants.CACHE_SHOP_KEY;
 import static com.lee.redis.train.demo.constants.RedisConstants.CACHE_SHOP_TTL;
 
@@ -41,9 +42,16 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             Shop bean = JSONUtil.toBean(json, Shop.class);
             return Result.success(List.of(bean));
         }
+        // 经过 isNotBlank 校验到这里的只有 null 和 空字符串两种情况
+        if (json != null) {
+            return Result.notFount("店铺不存在");
+        }
         // 3. 未命中则读取数据库数据, 查询数据库没有数据则返回 404
         Shop shop = getById(id);
         if (shop == null) {
+            // 将null object 写入 Redis, 防止缓存穿透,
+            // ¡¡¡¡!!!¡¡设置 null object 过期时间 2 分钟, 防止内存占用过多.
+            stringRedisTemplate.opsForValue().set(redisKey, "", CACHE_NULL_TTL, TimeUnit.MINUTES);
             return Result.notFount("店铺不存在");
         }
         // 4. 有数据则更新缓存
