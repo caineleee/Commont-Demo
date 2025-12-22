@@ -1,8 +1,12 @@
 package com.lee.redis.train.demo.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lee.redis.train.demo.constants.UserHold;
+import com.lee.redis.train.demo.entity.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
@@ -20,7 +24,22 @@ public class LoginInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 获取 ThreadLocal 中的用户信息, 没有就拦截
-        return UserHold.getUser() != null;
+        if (UserHold.getUser() == null) {
+            Result result = Result.unAuthorized("未登录,请重新登录");
+            ObjectMapper objectMapper = new ObjectMapper();
+            String json = objectMapper.writeValueAsString(result);
+
+            // 设置响应头和状态码
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding("UTF-8");
+
+            // 写入响应体
+            response.getWriter().write(json);
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            return false;
+        }
+        return true;
     }
 
     /**
