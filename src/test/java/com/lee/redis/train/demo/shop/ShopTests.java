@@ -1,9 +1,15 @@
 package com.lee.redis.train.demo.shop;
 
-import com.lee.redis.train.demo.cache.CachePreLoader;
+import com.lee.redis.train.demo.cache.CacheOperation;
+import com.lee.redis.train.demo.entity.Shop;
+import com.lee.redis.train.demo.mapper.ShopMapper;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.concurrent.TimeUnit;
+
+import static com.lee.redis.train.demo.constants.RedisConstants.CACHE_SHOP_KEY;
 
 /**
  * @ClassName ShopTests
@@ -16,12 +22,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class ShopTests {
 
     @Resource
-    private CachePreLoader cachePreLoader;
+    private CacheOperation caseOperation;
+
+    @Resource
+    private ShopMapper shopMapper;
 
 
     @Test
     void testSaveShop() {
-        cachePreLoader.saveShopToRedis(1L, 10L);
+        // 预缓存数据
+        Shop shop = shopMapper.selectById(1L);
+        caseOperation.cachePreLoader(CACHE_SHOP_KEY, 1L, shop,10L, TimeUnit.SECONDS);
     }
 
 }

@@ -44,18 +44,13 @@ public class RedisConstants {
     public static final Long CACHE_NULL_TTL = 2L;
 
     /**
-     * 互斥锁 Key 前缀 (互斥锁方案 | 逻辑过期方案) - SHOP
-     */
-    public static final String LOCK_SHOP_KEY = "lock:shop:";
-
-    /**
-     * 互斥锁 Key TTL
-     */
-    public static final Long LOCK_SHOP_TTL = 10L;
-
-    /**
      * 商铺类型缓存 Key 前缀
      */
     public static final String CACHE_SHOP_TYPE_LIST_KEY = "cache:shop_type:list";
+
+    /**
+     * 通用 Redis 互斥锁的过期时间
+     */
+    public static final Long GENERIC_LOCK_TTL = 10L;
 
 }
