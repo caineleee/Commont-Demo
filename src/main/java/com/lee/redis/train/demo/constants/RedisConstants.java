@@ -38,7 +38,12 @@ public class RedisConstants {
      */
     public static final Long CACHE_SHOP_TTL = 30L;
 
+    /**
+     * 缓存空数据 Key 过期时间
+     */
     public static final Long CACHE_NULL_TTL = 2L;
+
+    public static final String LOCK_MUTEX_KEY = "lock:mutex:shop:";
 
     /**
      * 商铺类型缓存 Key
