@@ -14,7 +14,7 @@ public class RedisConstants {
     public static final String LOGIN_CODE_KEY = "login:code:";
 
     /**
-     * 登录验证码 Key 过期时间
+     * 登录验证码 Key TTL
      */
     public static final Long LOGIN_CODE_TTL = 5L;
 
@@ -24,29 +24,37 @@ public class RedisConstants {
     public static final String USER_CACHED_KEY = "user:token:";
 
     /**
-     * 用户数据缓存 Key 过期时间
+     * 用户数据缓存 Key TTL
      */
     public static final Long USER_CACHED_TTL = 30L;
 
     /**
-     * 商铺缓存 Key
+     * 商铺缓存 Key 前缀
      */
     public static final String CACHE_SHOP_KEY = "cache:shop:";
 
     /**
-     * 商铺缓存 Key 过期时间
+     * 商铺缓存 Key TTL
      */
     public static final Long CACHE_SHOP_TTL = 30L;
 
     /**
-     * 缓存空数据 Key 过期时间
+     * 缓存空数据 Key TTL
      */
     public static final Long CACHE_NULL_TTL = 2L;
 
-    public static final String LOCK_MUTEX_KEY = "lock:mutex:shop:";
+    /**
+     * 互斥锁 Key 前缀 (互斥锁方案 | 逻辑过期方案) - SHOP
+     */
+    public static final String LOCK_SHOP_KEY = "lock:shop:";
 
     /**
-     * 商铺类型缓存 Key
+     * 互斥锁 Key TTL
+     */
+    public static final Long LOCK_SHOP_TTL = 10L;
+
+    /**
+     * 商铺类型缓存 Key 前缀
      */
     public static final String CACHE_SHOP_TYPE_LIST_KEY = "cache:shop_type:list";
 
