@@ -1,4 +1,4 @@
-package com.lee.redis.train.demo.config;
+package com.lee.redis.train.demo.config.interceptor;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;

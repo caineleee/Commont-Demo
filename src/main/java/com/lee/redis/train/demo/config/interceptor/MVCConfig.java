@@ -1,4 +1,4 @@
-package com.lee.redis.train.demo.config;
+package com.lee.redis.train.demo.config.interceptor;
 
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Configuration;

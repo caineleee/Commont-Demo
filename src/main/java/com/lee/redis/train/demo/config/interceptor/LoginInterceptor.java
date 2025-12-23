@@ -1,4 +1,4 @@
-package com.lee.redis.train.demo.config;
+package com.lee.redis.train.demo.config.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lee.redis.train.demo.constants.UserHold;
