@@ -1,7 +1,6 @@
 package com.lee.redis.train.demo.constants;
 
 import com.lee.redis.train.demo.dto.UserDTO;
-import com.lee.redis.train.demo.entity.User;
 
 /**
  * @ClassName UserHold
