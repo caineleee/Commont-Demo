@@ -32,7 +32,7 @@ public class MVCConfig implements WebMvcConfigurer {
                         "shop/**",
                         "/shop-type/**",
                         "/upload/**",
-                        "/voucher /**",
+                        "/voucher/**",
                         "/user/code",
                         "/user/login",
                         "/blog/hot"
