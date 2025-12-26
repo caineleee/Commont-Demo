@@ -5,12 +5,14 @@ import com.lee.redis.train.demo.constants.UserHold;
 import com.lee.redis.train.demo.entity.Result;
 import com.lee.redis.train.demo.entity.SeckillVoucher;
 import com.lee.redis.train.demo.entity.VoucherOrder;
+import com.lee.redis.train.demo.lock.SimpleRedisLock;
 import com.lee.redis.train.demo.mapper.VoucherOrderMapper;
 import com.lee.redis.train.demo.service.ISeckillVoucherService;
 import com.lee.redis.train.demo.service.IVoucherOrderService;
 import com.lee.redis.train.demo.utils.RedisIdWorker;
 import jakarta.annotation.Resource;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Resource
     private RedisIdWorker redisIdWorker;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 下单秒杀券
@@ -54,23 +59,21 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         // 一人一单判断
         Long userId = UserHold.getUser().getId();
 
-        // synchronized userId(Long) 会锁住 long 对象, 而不是 UserId 的值.
-        // 这样每次调用对象都会变化, 无法做到锁住 UserId value 代表的用户
-        // 所以需要将 userId.toString(), 但是发现锁住 UserId 的字符串值,
-        // 底层也是只能锁住一个每次调用都会变化的 String 对象, 而不是对应的值
-        // 所以再给 userId.toString() 加一个 intern(), 这样就是每次调用方法, 都会去常量池中寻找 value 一致的地址
-        synchronized (userId.toString().intern()) {
-            // 为了避免事务失效, 这里需要使用代理对象
+        // 创建锁对象, 如果需要锁住用户, 这里的参数必须拼接 userId, 否则锁住的就是整个 order 业务.
+        SimpleRedisLock lock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
+        // 尝试获取锁, 这里由于要调试, 所以 ttl 设置 为 1200便于debug
+        boolean isLock = lock.tryLock(1200);
+        if (!isLock) {
+            // 获取锁失败, 返回错误或者重试, 这里是秒杀下单场景, 目的是防止恶意刷,所以直接返回错误
+            return Result.error("不允许重复下单");
+        }
+        try {
+            // 为了避免事务失败, 所以这里使用代理
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
-
-            // 之所以在调用的时候才加锁, 是因为, 锁的粒度越小, 锁的冲突就越小
-            // 如果锁住整个方法, 所有进程就会阻塞等待一个用户执行, 相当于单核执行, 效率极差
-            // 只锁住用户, 就可以做到避免用户重复下单
-
-            // 如果只在 seckillVoucherOrder 方法内部加锁, 可能会导致有的线程修改了数据, 但还没来得及全部执行完毕所有流程
-            // 而 seckillVoucherOrder 加了 Transaction 注解, 遇到这样的情况就导致还没来得及提交, 其他线程就进到这个方法里.
-            // 这也是数据冲突的原因, 为了避免这个问题, 所以直接在方法调用的外层加锁.
             return proxy.seckillVoucherOrder(voucherId);
+        } finally {
+            // 释放锁
+            lock.unlock();
         }
     }
 
