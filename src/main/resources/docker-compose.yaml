@@ -76,11 +76,11 @@ services:
       start_period: 40s
 
   # Redis 主节点服务
-  demo-redis-master:
+  demo-redis-master1:
     # 使用的镜像
     image: redis:7-alpine
     # 容器名称
-    container_name: demo-redis-master
+    container_name: demo-redis-master1
     # 重启策略
     restart: unless-stopped
     # 端口映射
@@ -117,12 +117,11 @@ services:
       retries: 3
       start_period: 20s
 
-  # Redis 从节点1服务
-  demo-redis-slave1:
+  demo-redis-master2:
     # 使用的镜像
     image: redis:7-alpine
     # 容器名称
-    container_name: demo-redis-slave1
+    container_name: demo-redis-master2
     # 重启策略
     restart: unless-stopped
     # 端口映射
@@ -134,11 +133,7 @@ services:
     # 数据卷挂载
     volumes:
       # 挂载 Redis 数据目录以实现数据持久化
-      - redis_slave1_data:/data
-    # 依赖关系，确保主节点先启动
-    depends_on:
-      demo-redis-master:
-        condition: service_healthy
+      - redis_master_data2:/data
     # Redis 启动命令参数
     command: >
       redis-server
@@ -150,12 +145,11 @@ services:
       --logfile /data/redis-6380.log
       --appendonly yes
       --appendfilename appendonly-6380.aof
-      --replicaof redis-master 6379
       --requirepass root
       --masterauth root
       --loglevel verbose
     healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "root", "ping" ]
+      test: ["CMD", "redis-cli", "-a", "root", "ping"]
       # 检查间隔
       interval: 60s
       # 超时时间
@@ -163,15 +157,12 @@ services:
       # 重试次数
       retries: 3
       start_period: 20s
-    profiles:
-      - redis-cluster
 
-  # Redis 从节点2服务
-  demo-redis-slave2:
+  demo-redis-master3:
     # 使用的镜像
     image: redis:7-alpine
     # 容器名称
-    container_name: demo-redis-slave2
+    container_name: demo-redis-master3
     # 重启策略
     restart: unless-stopped
     # 端口映射
@@ -183,11 +174,7 @@ services:
     # 数据卷挂载
     volumes:
       # 挂载 Redis 数据目录以实现数据持久化
-      - redis_slave2_data:/data
-    # 依赖关系，确保主节点先启动
-    depends_on:
-      demo-redis-master:
-        condition: service_healthy
+      - redis_master_data3:/data
     # Redis 启动命令参数
     command: >
       redis-server
@@ -199,12 +186,11 @@ services:
       --logfile /data/redis-6381.log
       --appendonly yes
       --appendfilename appendonly-6381.aof
-      --replicaof redis-master 6379
       --requirepass root
       --masterauth root
       --loglevel verbose
     healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "root", "ping" ]
+      test: ["CMD", "redis-cli", "-a", "root", "ping"]
       # 检查间隔
       interval: 60s
       # 超时时间
@@ -212,138 +198,7 @@ services:
       # 重试次数
       retries: 3
       start_period: 20s
-    profiles:
-      - redis-cluster
 
-  # Redis Sentinel 1 服务
-  demo-redis-sentinel1:
-    # 使用的镜像
-    image: redis:7-alpine
-    # 容器名称
-    container_name: demo-redis-sentinel1
-    # 重启策略
-    restart: unless-stopped
-    # 端口映射
-    ports:
-      - "26379:26379"
-    # 网络配置
-    networks:
-      - demo-app-cluster # 单机部署集群网络
-    # 数据卷挂载
-    volumes:
-      # 挂载 Sentinel 数据目录
-      - sentinel1-data:/data
-    # 依赖关系，确保 Redis 主节点先启动
-    depends_on:
-      demo-redis-master:
-          condition: service_healthy
-    # Sentinel 启动命令参数
-    command: >
-      sh -c "
-        echo 'port 26379' > /tmp/sentinel.conf &&
-        echo 'dir /data' >> /tmp/sentinel.conf &&
-        echo 'sentinel monitor mymaster localhost 6379 2' >> /tmp/sentinel.conf &&
-        echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
-        echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
-        echo 'sentinel failover-timeout mymaster 10000' >> /tmp/sentinel.conf &&
-        echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
-        echo 'sentinel auth-pass mymaster root' >> /tmp/sentinel.conf &&
-        redis-sentinel /tmp/sentinel.conf
-      "
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-p", "26379", "-a", "root", "ping" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-
-  # Redis Sentinel 2 服务
-  demo-redis-sentinel2:
-    # 使用的镜像
-    image: redis:7-alpine
-    # 容器名称
-    container_name: demo-redis-sentinel2
-    # 重启策略
-    restart: unless-stopped
-    # 端口映射
-    ports:
-      - "26380:26379"
-    # 网络配置
-    networks:
-      - demo-app-cluster # 单机部署集群网络
-    # 数据卷挂载
-    volumes:
-      # 挂载 Sentinel 数据目录
-      - sentinel2-data:/data
-    # 依赖关系，确保 Redis 主节点先启动
-    depends_on:
-      demo-redis-master:
-        condition: service_healthy
-    # Sentinel 启动命令参数
-    command: >
-      sh -c "
-        echo 'port 26379' > /tmp/sentinel.conf &&
-        echo 'dir /data' >> /tmp/sentinel.conf &&
-        echo 'sentinel monitor mymaster localhost 6379 2' >> /tmp/sentinel.conf &&
-        echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
-        echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
-        echo 'sentinel failover-timeout mymaster 10000' >> /tmp/sentinel.conf &&
-        echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
-        echo 'sentinel auth-pass mymaster root' >> /tmp/sentinel.conf &&
-        redis-sentinel /tmp/sentinel.conf
-      "
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-p", "26379", "-a", "root", "ping" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    profiles:
-      - redis
-
-  # Redis Sentinel 3 服务
-  demo-redis-sentinel3:
-    # 使用的镜像
-    image: redis:7-alpine
-    # 容器名称
-    container_name: demo-redis-sentinel3
-    # 重启策略
-    restart: unless-stopped
-    # 端口映射
-    ports:
-      - "26381:26379"
-    # 网络配置
-    networks:
-      - demo-app-cluster # 单机部署集群网络
-    # 数据卷挂载
-    volumes:
-      # 挂载 Sentinel 数据目录
-      - sentinel3-data:/data
-    # 依赖关系，确保 Redis 主节点先启动
-    depends_on:
-      demo-redis-master:
-        condition: service_healthy
-    # Sentinel 启动命令参数
-    command: >
-      sh -c "
-        echo 'port 26379' > /tmp/sentinel.conf &&
-        echo 'dir /data' >> /tmp/sentinel.conf &&
-        echo 'sentinel monitor mymaster localhost 6379 2' >> /tmp/sentinel.conf &&
-        echo 'sentinel down-after-milliseconds mymaster 5000' >> /tmp/sentinel.conf &&
-        echo 'sentinel parallel-syncs mymaster 1' >> /tmp/sentinel.conf &&
-        echo 'sentinel failover-timeout mymaster 10000' >> /tmp/sentinel.conf &&
-        echo 'sentinel resolve-hostnames yes' >> /tmp/sentinel.conf &&
-        echo 'sentinel auth-pass mymaster root' >> /tmp/sentinel.conf &&
-        redis-sentinel /tmp/sentinel.conf
-      "
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-p", "26379", "-a", "root", "ping" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    profiles:
-      - redis
 
   local-nginx-proxy:
     image: nginx:alpine
@@ -365,16 +220,9 @@ volumes:
   mysql-shard3-data:
   # Redis 主节点数据卷
   redis_master_data:
-  # Redis 从节点1数据卷
-  redis_slave1_data:
-  # Redis 从节点2数据卷
-  redis_slave2_data:
-  # Sentinel 1 数据卷
-  sentinel1-data:
-  # Sentinel 2 数据卷
-  sentinel2-data:
-  # Sentinel 3 数据卷
-  sentinel3-data:
+  redis_master_data2:
+  redis_master_data3:
+
 
 # 单机部署集群网络
 networks:

@@ -11,6 +11,8 @@ import com.lee.redis.train.demo.service.ISeckillVoucherService;
 import com.lee.redis.train.demo.service.IVoucherOrderService;
 import com.lee.redis.train.demo.utils.RedisIdWorker;
 import jakarta.annotation.Resource;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    @Resource
+    private RedissonClient redissonClient;
+
     /**
      * 下单秒杀券
      * @param voucherId 优惠券id
@@ -60,9 +65,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         Long userId = UserHold.getUser().getId();
 
         // 创建锁对象, 如果需要锁住用户, 这里的参数必须拼接 userId, 否则锁住的就是整个 order 业务.
-        SimpleRedisLock lock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
-        // 尝试获取锁, 这里由于要调试, 所以 ttl 设置 为 1200便于debug
-        boolean isLock = lock.tryLock(1200);
+        // SimpleRedisLock lock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
+        RLock lock = redissonClient.getLock("lock:order:" + userId);
+        // 尝试获取锁, Reddison 这里可以设置重试等待时间,
+        boolean isLock = lock.tryLock();
         if (!isLock) {
             // 获取锁失败, 返回错误或者重试, 这里是秒杀下单场景, 目的是防止恶意刷,所以直接返回错误
             return Result.error("不允许重复下单");
