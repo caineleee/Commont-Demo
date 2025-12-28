@@ -22,9 +22,9 @@ public interface IVoucherOrderService extends IService<VoucherOrder> {
 
     /**
      * 下单秒杀券(不能直接调用这个方法, 是用于seckillVoucher调用的, 为了避免事务失效)
-     * @param voucherId 优惠券id
-     * @return 下单结果
+     * @param voucherOrder 优惠券
+     * @return 下单结果 // 移除 return, 因为异步下单不需要返回信息.
      */
-    Result seckillVoucherOrder(Long voucherId);
+    void seckillVoucherOrder(VoucherOrder voucherOrder);
 
 }

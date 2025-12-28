@@ -7,8 +7,11 @@ import com.lee.redis.train.demo.mapper.VoucherMapper;
 import com.lee.redis.train.demo.service.ISeckillVoucherService;
 import com.lee.redis.train.demo.service.IVoucherService;
 import jakarta.annotation.Resource;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static com.lee.redis.train.demo.constants.RedisConstants.SECKILL_STOCK_KEY;
 
 /**
  * @ClassName VoucherServiceImpl
@@ -22,6 +25,9 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
 
     @Resource
     private ISeckillVoucherService seckillVoucherService;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 新增秒杀券
@@ -40,5 +46,9 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
                 .setBeginTime(voucher.getBeginTime())
                 .setEndTime(voucher.getEndTime());
         seckillVoucherService.save(seckillVoucher);
+
+        // 将优惠券信息保存在 Redis 当中
+        stringRedisTemplate.opsForValue().set(SECKILL_STOCK_KEY + voucher.getId(), voucher.getStock().toString());
+
     }
 }

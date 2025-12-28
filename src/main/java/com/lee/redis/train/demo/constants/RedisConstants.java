@@ -39,7 +39,7 @@ public class RedisConstants {
     public static final Long CACHE_SHOP_TTL = 30L;
 
     /**
-     * 缓存空数据 Key TTL
+     * 缓存空数据 TTL
      */
     public static final Long CACHE_NULL_TTL = 2L;
 
@@ -52,5 +52,10 @@ public class RedisConstants {
      * 通用 Redis 互斥锁的过期时间
      */
     public static final Long GENERIC_LOCK_TTL = 10L;
+
+    /**
+     * 秒杀优惠券库存 Key 前缀
+     */
+    public static final String SECKILL_STOCK_KEY = "seckill:stock:";
 
 }
