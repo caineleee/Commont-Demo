@@ -4,6 +4,8 @@
 local VoucherID = ARGV[1];
 -- 用户ID
 local UserID = ARGV[2];
+-- 订单ID
+local OrderID = ARGV[3];
 
 -- 数据 Key
 -- 库存 key
@@ -29,6 +31,9 @@ end
 redis.call("incrby", StockKey, -1)
 -- Redis 下单(保存用户)
 redis.call("sadd", OrderKey, UserID)
+
+-- 向消息队列发送消息, orderId 为了适配java entity 类属性名, 所以这里使用 id
+redis.call("xadd", "stream.order", "*", "voucherId", VoucherID, "userId", UserID, "id", OrderID)
 return 0;
 
 
