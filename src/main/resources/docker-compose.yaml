@@ -207,6 +207,7 @@ services:
       - "8079:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./uploads:/usr/share/nginx/html/uploads  # ← 关键：挂载上传目录
     # 关键：让容器能访问宿主机（你的本地服务）
     extra_hosts:
       - "host.docker.internal:host-gateway"  # Docker Desktop 推荐方式（Win/Mac）

@@ -9,11 +9,9 @@ package com.lee.redis.train.demo.constants;
  */
 public class SystemConstants {
 
-    public static final String IMG_UPLOAD_PATH = "D:\\xxx\\";
-
     public static final String USER_NICK_NAME_PREFIX = "user_";
 
-    public static final String DEFAULT_PAGE_SIZE = "5";
+    public static final Integer DEFAULT_PAGE_SIZE = 5;
 
     public static final String MAX_PAGE_SIZE = "10";
 }

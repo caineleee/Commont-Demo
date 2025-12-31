@@ -1,6 +1,10 @@
 server:
   port: 8081
 
+app:
+  upload:
+    base-dir: ${user.dir}/uploads
+
 spring:
 #  application:
 #    name: demo
@@ -22,6 +26,12 @@ spring:
           min-idle: 0
           time-between-eviction-runs: 10s
       database: 1
+  servlet:
+    # 文件上传
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
   jackson:
     default-property-inclusion: non_null
     parser:
