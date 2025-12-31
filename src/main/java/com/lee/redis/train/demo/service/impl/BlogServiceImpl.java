@@ -1,5 +1,6 @@
 package com.lee.redis.train.demo.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lee.redis.train.demo.constants.UserHold;
@@ -11,11 +12,17 @@ import com.lee.redis.train.demo.mapper.BlogMapper;
 import com.lee.redis.train.demo.service.IBlogService;
 import com.lee.redis.train.demo.service.IUserService;
 import jakarta.annotation.Resource;
+import jodd.util.StringUtil;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.StringJoiner;
 
+import static com.lee.redis.train.demo.constants.RedisConstants.BLOB_LIKE_KEY;
 import static com.lee.redis.train.demo.constants.SystemConstants.DEFAULT_PAGE_SIZE;
 
 /**
@@ -73,26 +80,58 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         return Result.success(blog);
     }
 
+    /**
+     * 点赞笔记
+     * @param id 笔记 ID
+     * @return 操作结果
+     */
     @Override
     public Result likeBlog(Long id) {
         // 判断用户是否已经点赞, 没有点赞则Db liked +1, 并添加到 redis
         UserDTO user = UserHold.getUser();
-        String key = "blog:liked:" + id;
-        Boolean isMember = stringRedisTemplate.opsForSet().isMember(key, user.getId().toString());
-        if (!Boolean.TRUE.equals(isMember)) {
+        String key = BLOB_LIKE_KEY + id;
+        // Zset 无法没有 isMember 的方法来实现成员判断, 只能通过score 来判断
+        Double isMember = stringRedisTemplate.opsForZSet().score(key, user.getId().toString());
+        if (isMember != null) {
             // 已点赞
             boolean update = update().setSql("liked = liked - 1").eq("id", id).update();
             if (update) {
-                stringRedisTemplate.opsForSet().remove(key, user.getId().toString());
+                stringRedisTemplate.opsForZSet().remove(key, user.getId().toString());
             }
         } else {
             boolean update = update().setSql("liked = liked + 1").eq("id", id).update();
             if (update) {
-                stringRedisTemplate.opsForSet().add(key, user.getId().toString());
+                // 使用 redis zset 存储点赞数据, 并以时间戳为score
+                stringRedisTemplate.opsForZSet().add(key, user.getId().toString(), System.currentTimeMillis());
             }
         }
         // 如果点过赞则Db liked -1, 把用户从 redis set 中移除
         return Result.success();
+    }
+
+    /**
+     * 查询笔记点赞信息 (获取点赞数 + top5 user)
+     * @param id 笔记 ID
+     * @return 点赞信息
+     */
+    @Override
+    public Result queryBlogLikes(Long id) {
+        // 从 redis 中获取点赞用户列表 top5
+        Set<String> top5 = stringRedisTemplate.opsForZSet().range(BLOB_LIKE_KEY + id, 0, 4);
+        if (top5 == null || top5.isEmpty()) {
+            return Result.success(Collections.emptyList());
+        }
+        // 查询 top5 用户信息(DB)
+        List<Long> ids = top5.stream().map(Long::valueOf).toList();
+        String field = StringUtil.join(ids, ",");
+        // listByIds 返回数据顺序不对, 需要指定先点赞的id排前面, 替换为指定顺序查询方式 FILED
+        List<UserDTO> users = userService.query()
+                .in("id", ids)
+                .last("order by field(id, " + field + ")").list()
+                .stream()
+                .map(user -> BeanUtil.copyProperties(user, UserDTO.class)).toList();
+
+        return Result.success(users);
     }
 
     /**
@@ -114,10 +153,10 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         // 判断用户是否已经点赞, 没有点赞则Db liked +1, 并添加到 redis
         UserDTO user = UserHold.getUser();
         if (user == null) {
-            return;
+            return; // 未登录,无需查询是否点赞
         }
-        String key = "blog:liked:" + blog.getId();
-        Boolean isMember = stringRedisTemplate.opsForSet().isMember(key, user.getId().toString());
-        blog.setIsLike(Boolean.TRUE.equals(isMember));
+        String key = BLOB_LIKE_KEY + blog.getId();
+        Double isMember = stringRedisTemplate.opsForZSet().score(key, user.getId().toString());
+        blog.setIsLike(isMember != null);
     }
 }

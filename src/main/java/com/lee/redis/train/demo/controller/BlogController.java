@@ -5,9 +5,7 @@ import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.Blog;
 import com.lee.redis.train.demo.entity.Result;
 import com.lee.redis.train.demo.service.IBlogService;
-import com.lee.redis.train.demo.service.IUserService;
 import jakarta.annotation.Resource;
-import jakarta.websocket.server.PathParam;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,7 +29,11 @@ public class BlogController {
     @Resource
     private IBlogService blogService;
 
-
+    /**
+     * 创建笔记
+     * @param blog  笔记信息
+     * @return  笔记 ID
+     */
     @PostMapping
     public Result saveBlog(@RequestBody Blog blog) {
         // 获取登录用户
@@ -71,5 +73,12 @@ public class BlogController {
     public Result likeBlog(@PathVariable("id") Long id) {
         return blogService.likeBlog(id);
     }
+
+    @GetMapping("/likes/{id}")
+    public Result queryBlogLikes(@PathVariable("id") Long id) {
+        return blogService.queryBlogLikes(id);
+    }
+
+
 
 }
