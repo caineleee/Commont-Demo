@@ -1,5 +1,6 @@
 package com.lee.redis.train.demo.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lee.redis.train.demo.constants.UserHold;
 import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.Blog;
@@ -14,6 +15,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+import static com.lee.redis.train.demo.constants.SystemConstants.MAX_PAGE_SIZE;
 
 /**
  * @ClassName BlogController
@@ -62,6 +67,21 @@ public class BlogController {
     @GetMapping("/{id}")
     public Result queryBlogById(@PathVariable("id") Long id) {
         return blogService.queryBlogById(id);
+    }
+
+     /**
+     * 查询指定用户的笔记 (分页)
+     * @param current  当前页
+     * @param id  用户 ID
+     * @return  笔记列表
+     */
+    @GetMapping("/of/user")
+    public Result queryBlogByUserId(@RequestParam(value = "current",  defaultValue = "1") Integer current,
+                                    @RequestParam("id") Long id) {
+        // 分页查询指定用户的笔记
+        Page<Blog> blogs = blogService.query().eq("user_id", id).page(new Page<>(current, MAX_PAGE_SIZE));
+        List<Blog> records = blogs.getRecords();
+        return Result.success(records);
     }
 
      /**

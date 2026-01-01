@@ -13,5 +13,5 @@ public class SystemConstants {
 
     public static final Integer DEFAULT_PAGE_SIZE = 5;
 
-    public static final String MAX_PAGE_SIZE = "10";
+    public static final Integer MAX_PAGE_SIZE = 10;
 }
