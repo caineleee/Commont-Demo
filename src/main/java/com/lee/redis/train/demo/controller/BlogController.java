@@ -1,8 +1,6 @@
 package com.lee.redis.train.demo.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lee.redis.train.demo.constants.UserHold;
-import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.Blog;
 import com.lee.redis.train.demo.entity.Result;
 import com.lee.redis.train.demo.service.IBlogService;
@@ -41,12 +39,7 @@ public class BlogController {
      */
     @PostMapping
     public Result saveBlog(@RequestBody Blog blog) {
-        // 获取登录用户
-        UserDTO  user = UserHold.getUser();
-        blog.setUserId(user.getId());
-        // 保存笔记
-        blogService.save(blog);
-        return Result.success(blog.getId());
+        return blogService.saveBlog(blog);
     }
 
     /**
@@ -85,6 +78,18 @@ public class BlogController {
     }
 
      /**
+     * 查询当前用户关注的所有用户的笔记 (滚动分页)
+     * @param max  最大 ID
+     * @param offset  偏移量
+     * @return  笔记列表
+     */
+    @GetMapping ("/of/follow")
+    public Result queryBlogOfFollow(@RequestParam("lastId")  Long max,
+                                    @RequestParam(value = "offset", defaultValue = "0") Integer offset) {
+        return blogService.queryBlogOfFollow(max, offset);
+    }
+
+     /**
      * 点赞笔记
      * @param id  笔记 ID
      * @return  操作结果
@@ -94,6 +99,11 @@ public class BlogController {
         return blogService.likeBlog(id);
     }
 
+     /**
+     * 查询笔记点赞数
+     * @param id  笔记 ID
+     * @return  点赞数
+     */
     @GetMapping("/likes/{id}")
     public Result queryBlogLikes(@PathVariable("id") Long id) {
         return blogService.queryBlogLikes(id);

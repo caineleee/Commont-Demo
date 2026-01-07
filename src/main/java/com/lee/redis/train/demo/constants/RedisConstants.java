@@ -63,6 +63,14 @@ public class RedisConstants {
      */
     public static final String BLOB_LIKE_KEY = "blog:liked:";
 
+    /**
+     * 关注 Key 前缀
+     */
     public static final String FOLLOW_KEY = "follow:";
+
+    /**
+     * 笔记收件箱 Key 前缀
+     */
+    public static final String FEED_KEY = "feed:";
 
 }

@@ -28,6 +28,14 @@ public interface IBlogService extends IService<Blog> {
     Result queryHotBlog(Integer current);
 
     /**
+     * 查询指定用户的笔记 (滚动分页) // TODO ??? 注释不对
+     * @param max 最大时间戳
+     * @param offset 笔记偏移量
+     * @return 笔记列表
+     */
+    Result queryBlogOfFollow(Long max, Integer offset);
+
+    /**
      * 点赞笔记
      * @param id 笔记 ID
      * @return 点赞结果
@@ -40,4 +48,13 @@ public interface IBlogService extends IService<Blog> {
      * @return 点赞信息
      */
     Result queryBlogLikes(Long id);
+
+    /**
+     * 创建笔记
+     * @param blog 笔记信息
+     * @return 笔记 ID
+     */
+    Result saveBlog(Blog blog);
+
+
 }

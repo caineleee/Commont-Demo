@@ -1,28 +1,34 @@
 package com.lee.redis.train.demo.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lee.redis.train.demo.constants.UserHold;
+import com.lee.redis.train.demo.dto.ScrollResultDTO;
 import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.Blog;
+import com.lee.redis.train.demo.entity.Follow;
 import com.lee.redis.train.demo.entity.Result;
 import com.lee.redis.train.demo.entity.User;
 import com.lee.redis.train.demo.mapper.BlogMapper;
 import com.lee.redis.train.demo.service.IBlogService;
+import com.lee.redis.train.demo.service.IFollowService;
 import com.lee.redis.train.demo.service.IUserService;
 import jakarta.annotation.Resource;
 import jodd.util.StringUtil;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import java.util.StringJoiner;
 
 import static com.lee.redis.train.demo.constants.RedisConstants.BLOB_LIKE_KEY;
+import static com.lee.redis.train.demo.constants.RedisConstants.FEED_KEY;
 import static com.lee.redis.train.demo.constants.SystemConstants.DEFAULT_PAGE_SIZE;
 
 /**
@@ -40,6 +46,38 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private IFollowService followService;
+
+    /**
+     * 创建笔记
+     * @param blog 笔记信息
+     * @return 笔记 ID
+     */
+    @Override
+    public Result saveBlog(Blog blog) {
+        // 获取当前用户
+        UserDTO user = UserHold.getUser();
+        blog.setUserId(user.getId());
+
+        // 保存笔记
+        boolean isSaved = save(blog);
+        if (!isSaved) {
+            return Result.error("笔记保存失败");
+        }
+        // 查询笔记作者的所有关注者
+        List<Follow> follows = followService.query().eq("follow_id", user.getId()).list();
+        // 推送笔记 ID 给所有粉丝
+        for(Follow follow : follows) {
+            // 获取粉丝 ID
+            Long followId = follow.getUserId();
+            // 将笔记 ID 推入关注者的收件箱(Redis feed zset 集合)
+            stringRedisTemplate.opsForZSet().add(FEED_KEY + followId, blog.getId().toString(), System.currentTimeMillis());
+        }
+
+        return Result.success(blog.getId());
+    }
 
     /**
      * 查询最热笔记
@@ -60,6 +98,53 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         });
         // 返回数据
         return Result.success(records);
+    }
+
+    /**
+     * 查询指定用户的笔记 (滚动分页)
+     * @param max  最大时间戳
+     * @param offset  时间戳偏移量
+     * @return 笔记列表
+     */
+    @Override
+    public Result queryBlogOfFollow(Long max, Integer offset) {
+        // 1.获取当前用户, 查询 feed 收件箱
+        UserDTO user = UserHold.getUser();
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet()
+                .reverseRangeByScoreWithScores(FEED_KEY + user.getId(), 0, max, offset, DEFAULT_PAGE_SIZE);
+        // 2. 解析数据 blob id, minTime 时间戳, offset
+        if (typedTuples == null || typedTuples.isEmpty()) {
+            return Result.notFount("没有更多笔记了");
+        }
+        List<Long> ids = new ArrayList<>(typedTuples.size());
+        long minTime = 0;
+        int offsetCount = 1;
+        for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {
+            ids.add(Long.valueOf(tuple.getValue()));
+            long time = tuple.getScore().longValue();
+            if (time == minTime) {
+                offsetCount++;
+            } else {
+                minTime = time;
+                offsetCount = 1;
+            }
+        }
+        // 获取 blog 列表
+        List<Blog> blogs = query().in("id", ids)
+                .last("order by field(id, " + StrUtil.join(",", ids) + ")").list();
+
+        for (Blog blog : blogs) {
+            // 给分页数据的每一个笔记查询用户信息
+            queryBlobUserInfo(blog);
+            // 判断每一个笔记是否被当前用户点赞
+            isBlogLiked(blog);
+        }
+        // 封装并返回滚动分页数据
+        ScrollResultDTO<Blog> scrollResultDTO = new ScrollResultDTO<>();
+        scrollResultDTO.setList(blogs);
+        scrollResultDTO.setMinTime(minTime);
+        scrollResultDTO.setOffset(offsetCount);
+        return Result.success(scrollResultDTO);
     }
 
     /**
@@ -133,6 +218,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
         return Result.success(users);
     }
+
 
     /**
      * 查询笔记用户信息
