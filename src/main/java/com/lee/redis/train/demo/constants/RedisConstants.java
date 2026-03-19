@@ -54,6 +54,11 @@ public class RedisConstants {
     public static final Long GENERIC_LOCK_TTL = 10L;
 
     /**
+     * POI 类型缓存 Key 前缀
+     */
+    public static final String POI_GEO_TYPE_KEY = "poi:geo:typeid:";
+
+    /**
      * 秒杀优惠券库存 Key 前缀
      */
     public static final String SECKILL_STOCK_KEY = "seckill:stock:";

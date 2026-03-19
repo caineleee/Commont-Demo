@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -29,6 +30,14 @@ public class ShopController {
     @GetMapping("/{id}")
     public Result queryShopById(@PathVariable("id") Long id) {
         return shopService.queryShopById(id);
+    }
+
+    @GetMapping("/of/type")
+    public Result queryShopByType(@RequestParam("typeId") Integer typeId,
+                                  @RequestParam(value = "current", defaultValue = "1") Integer current,
+                                  @RequestParam(value = "x", required = false) Double x,
+                                  @RequestParam(value = "y", required = false) Double y) {
+        return shopService.queryShopByType(typeId, current, x, y);
     }
 
     @PutMapping("/")

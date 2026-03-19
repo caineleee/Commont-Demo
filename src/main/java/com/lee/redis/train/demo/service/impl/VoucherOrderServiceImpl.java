@@ -125,7 +125,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     // ACK 确认消息
                     stringRedisTemplate.opsForStream().acknowledge(queueName, groupName, entries.getId());
                 } catch (Exception e) {
-                    log.error("处理订单异常" + e);
+                    log.error(String.join("处理订单异常" + e.getMessage()));
                     // 消息依然就代表消息没有 ack确认, msg 进入了 pending-list 没出来, 就需要再次尝试处理
                     handlePendingList();
 

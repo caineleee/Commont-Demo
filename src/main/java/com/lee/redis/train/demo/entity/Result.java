@@ -1,5 +1,6 @@
 package com.lee.redis.train.demo.entity;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -78,6 +79,15 @@ public class Result {
                 .setMessage("success")
                 .setData(data)
                 .setTotal(total)
+                .setTimestamp(System.currentTimeMillis());
+    }
+
+    public static <T> Result success(Page<T> data) {
+        return new Result()
+                .setCode(OK.value())
+                .setMessage("success")
+                .setData(data.getRecords())
+                .setTotal((int) data.getSize())
                 .setTimestamp(System.currentTimeMillis());
     }
 

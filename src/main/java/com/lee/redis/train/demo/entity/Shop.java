@@ -1,6 +1,7 @@
 package com.lee.redis.train.demo.entity;
 
 import cn.hutool.core.date.DateTime;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -32,5 +33,8 @@ public class Shop {
     private String images;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+
+    @TableField(exist = false)
+    private Double distance;
 
 }
