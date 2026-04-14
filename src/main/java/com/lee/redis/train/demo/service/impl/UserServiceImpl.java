@@ -5,6 +5,7 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lee.redis.train.demo.constants.UserHold;
 import com.lee.redis.train.demo.dto.LoginFormDTO;
 import com.lee.redis.train.demo.dto.UserDTO;
 import com.lee.redis.train.demo.entity.Result;
@@ -20,6 +21,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +30,7 @@ import static com.lee.redis.train.demo.constants.RedisConstants.LOGIN_CODE_KEY;
 import static com.lee.redis.train.demo.constants.RedisConstants.LOGIN_CODE_TTL;
 import static com.lee.redis.train.demo.constants.RedisConstants.USER_CACHED_KEY;
 import static com.lee.redis.train.demo.constants.RedisConstants.USER_CACHED_TTL;
+import static com.lee.redis.train.demo.constants.RedisConstants.USER_SIGN_KEY;
 import static com.lee.redis.train.demo.constants.SystemConstants.USER_NICK_NAME_PREFIX;
 
 /**
@@ -138,5 +141,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             log.warn("手机号或用户名已存在, 注册失败", e);
         }
         return user;
+    }
+
+    /**
+     * @Description 签到功能
+     * @return 签到结果
+     */
+    @Override
+    public Result sign() {
+        // 获取当前用户
+        Long userId = UserHold.getUser().getId();
+        // 获取当前时间
+        LocalDateTime now = LocalDateTime.now();
+        // 拼接key
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = USER_SIGN_KEY + userId + keySuffix;
+        // 获取今天是本月的第几天
+        int dayOfMonth = now.getDayOfMonth();
+        // 写入 redis setbit key value offset
+        stringRedisTemplate.opsForValue().setBit(key, dayOfMonth - 1, true);
+
+        return Result.success("签到成功");
     }
 }

@@ -60,4 +60,9 @@ public class UserController {
         }
         return Result.success(BeanUtil.copyProperties(user, UserDTO.class));
     }
+
+    @PostMapping("/sign")
+    public Result sign() {
+        return userService.sign();
+    }
 }

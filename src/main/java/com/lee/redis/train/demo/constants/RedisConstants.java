@@ -78,4 +78,9 @@ public class RedisConstants {
      */
     public static final String FEED_KEY = "feed:";
 
+    /**
+     * 用户签到 Key 前缀
+     */
+    public static final String USER_SIGN_KEY = "sign:";
+
 }
