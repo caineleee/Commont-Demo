@@ -1,5 +1,6 @@
 package com.lee.redis.train.demo.controller;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.lee.redis.train.demo.entity.Result;
 import com.lee.redis.train.demo.entity.Shop;
 import com.lee.redis.train.demo.service.IShopService;
@@ -27,9 +28,24 @@ public class ShopController {
     @Resource
     private IShopService shopService;
 
+    @Resource
+    private Cache<Long, Shop> shopCache;
+
     @GetMapping("/{id}")
     public Result queryShopById(@PathVariable("id") Long id) {
         return shopService.queryShopById(id);
+    }
+
+    /**
+     * 新增 JVM Caffeine缓存
+     * @param id 商铺id
+     * @return 商铺信息
+     */
+    @GetMapping("/{id}")
+    public Result queryShopByIdWithCaffeine(@PathVariable("id") Long id) {
+        // 先获取本地缓存数据, 未命中则从数据库查询, 命中则返回数据
+        Shop shop = shopCache.get(id, key -> shopService.getById(id));
+        return Result.success(shop);
     }
 
     @GetMapping("/of/type")

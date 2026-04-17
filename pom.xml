@@ -105,6 +105,13 @@
             <artifactId>hutool-all</artifactId>
             <version>5.8.42</version>
         </dependency>
+        <!-- JVM 本地缓存 Caffeine -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.2.3</version>
+        </dependency>
+
         <!-- junit -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
