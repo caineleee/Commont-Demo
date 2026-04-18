@@ -31,10 +31,6 @@ public class ShopController {
     @Resource
     private Cache<Long, Shop> shopCache;
 
-    @GetMapping("/{id}")
-    public Result queryShopById(@PathVariable("id") Long id) {
-        return shopService.queryShopById(id);
-    }
 
     /**
      * 新增 JVM Caffeine缓存
