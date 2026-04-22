@@ -111,6 +111,12 @@
             <artifactId>caffeine</artifactId>
             <version>3.2.3</version>
         </dependency>
+        <!-- Canal 监控MysqlBinlog 第三方客户端 -->
+        <dependency>
+            <groupId>top.javatool</groupId>
+            <artifactId>canal-spring-boot-starter</artifactId>
+            <version>1.2.1-RELEASE</version>
+        </dependency>
 
         <!-- junit -->
         <dependency>

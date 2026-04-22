@@ -4,6 +4,7 @@ import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.lee.redis.train.demo.entity.Shop;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import static com.lee.redis.train.demo.constants.RedisConstants.CACHE_SHOP_KEY;
 import static com.lee.redis.train.demo.constants.RedisConstants.GENERIC_LOCK_TTL;
 
 
@@ -198,4 +200,32 @@ public class CacheOperation {
         return r;
 
     }
+
+    /**
+     * 保存商铺信息到 Redis (目前只适用于 Canal 同步数据)
+     * @param shop 商铺信息
+     */
+    public void saveShopToRedis(Shop shop) {
+        try {
+            String json = JSONUtil.toJsonStr(shop);
+            stringRedisTemplate.opsForValue().set(CACHE_SHOP_KEY + shop.getId(), json);
+        } catch (Exception e) {
+            log.error("保存商铺信息到 Redis 失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 删除 Redis 商铺信息 (目前只适用于 Canal 同步数据)
+     * @param shop 商铺信息
+     */
+    public void deleteShopToRedis(Shop shop) {
+        try {
+            String json = JSONUtil.toJsonStr(shop);
+            stringRedisTemplate.delete(CACHE_SHOP_KEY + shop.getId());
+        } catch (Exception e) {
+            log.error("删除 Redis 商铺信息失败: " + e.getMessage());
+        }
+    }
+
+
 }
